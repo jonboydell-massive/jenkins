@@ -1,0 +1,40 @@
+#!/bin/bash -xe
+yum update -y
+yum install -y docker nginx git
+cat <<EOF > /etc/nginx/nginx.conf
+server {
+    listen       80;
+    server_name  _;
+
+    location / {
+            proxy_pass http://127.0.0.1:8080;
+    }
+}
+EOF
+wget -O /etc/yum.repos.d/jenkins.repo http://pkg.jenkins-ci.org/redhat/jenkins.repo
+rpm --import http://pkg.jenkins-ci.org/redhat/jenkins-ci.org.key
+yum install -y jenkins
+cat <<EOF > /usr/share/jenkins/ref/init.groovy.d/security.groovy
+#!groovy
+ 
+import jenkins.model.*
+import hudson.security.*
+import jenkins.security.s2m.AdminWhitelistRule
+ 
+def instance = Jenkins.getInstance()
+ 
+def hudsonRealm = new HudsonPrivateSecurityRealm(false)
+hudsonRealm.createAccount("admin", "admin")
+instance.setSecurityRealm(hudsonRealm)
+ 
+def strategy = new FullControlOnceLoggedInAuthorizationStrategy()
+instance.setAuthorizationStrategy(strategy)
+instance.save()
+ 
+Jenkins.instance.getInjector().getInstance(AdminWhitelistRule.class).setMasterKillSwitch(false)
+EOF
+usermod -a -G docker jenkins
+yum install -y java-1.8.0-openjdk
+yum erase -y java-1.7.0-openjdk
+service docker start
+chkconfig docker on
