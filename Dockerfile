@@ -1,4 +1,4 @@
-FROM jonboydell/jenkins-alpine:latest
+FROM jonboydell/jenkins-alpine:v1.1.0
 
 USER root
 RUN apk update
